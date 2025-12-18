@@ -54,7 +54,7 @@ jobs:
     needs: build
     steps:
       - name: 도커 로그인
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{env.DOCKER_USERNAME}}
           password: ${{env.DOCKER_PASSWORD}}
@@ -63,15 +63,6 @@ jobs:
         run: |
           docker pull ${{env.DOCKER_USERNAME}}/devops_step2:v1.0
 
-          docker stop devops-app || true
-          docker rm devops-app || true
-
-          docker run -d --name devops-app -p 8080:8080 ${{env.DOCKER_USERNAME}}/devops_step2:v1.0
+          docker compose -f ~/kosa-devops_step2/docker-compose.yml up -d
 
           docker image prune -f
-
-      - name: docker image pull
-        run: docker pull ${{env.DOCKER_USERNAME}}/devops_step2:v1.0}}
-
-      - name: docker compose 실행
-        run: docker compose -f ~/kosa-devops_step2/docker-compose.yml up -d
