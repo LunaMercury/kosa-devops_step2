@@ -69,3 +69,9 @@ jobs:
           docker run -d --name devops-app -p 8080:8080 ${{env.DOCKER_USERNAME}}/devops_step2:v1.0
 
           docker image prune -f
+
+      - name: docker image pull
+        run: docker pull ${{env.DOCKER_USERNAME}}/devops_step2:v1.0}}
+
+      - name: docker compose 실행
+        run: docker compose -f ~/kosa-devops_step2/docker-compose.yml up -d
