@@ -1,4 +1,4 @@
-name: Springboot Docker image CI/CD
+name: normal - Springboot Docker image CI/CD
 
 # on:
 #   push:
