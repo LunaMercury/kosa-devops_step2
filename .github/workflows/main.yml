@@ -59,7 +59,7 @@ jobs:
         with:
           sparse-checkout: |
             docker-compose_nginx.yml
-            nginx/nging.conf
+            nginx/nginx.conf
           sparse-checkout-cone-mode: false
           clean: true
 
