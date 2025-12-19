@@ -1,0 +1,103 @@
+name: Springboot Docker image CI/CD
+
+on:
+  push:
+    branches: [main]
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 소스 복사
+      - name: 소스 복사
+        #- run: git clone https://github.com/LunaMercury/kosa-devops_step2
+        # 원래 위처럼 소스를 복사해야 한다. 그러나 이것을 쉽게 할 수 있는 기능이 git action에 있다.
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup JDK17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: gradlew 실행권한 설정
+        run: chmod +x gradlew
+
+      - name: gradle
+        run: ./gradlew --info test
+
+      - name: Springboot 실행 파일 생성
+        run: ./gradlew bootJar
+
+      - name: 도커 이미지 생성
+        run: docker build -t ${{env.DOCKER_USERNAME}}/devops_step2:v1.0 .
+
+      - name: 도커 로그인
+        #이렇게 해야하는데 이와 관련된 편한 함수가 있다.
+        #run: docker login -u ${{env.DOCKER_USERNAME}} -p${{env.DOCKER_PASSWORD}}
+        uses: docker/login-action@v1
+        with:
+          username: ${{env.DOCKER_USERNAME}}
+          password: ${{env.DOCKER_PASSWORD}}
+
+      - name: docker image 허브에 저장
+        run: docker push ${{env.DOCKER_USERNAME}}/devops_step2:v1.0
+
+        # 아티팩트 사용
+      - name: 파일 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-configs
+          path: |
+            docker-compose_nginx.yml
+            nginx/nginx.conf
+
+  deploy:
+    name: Deploy
+    runs-on: [self-hosted]
+    needs: build
+    steps:
+      # # 위 artifact로 인해
+      # - name: 체크아웃 실행
+      #   uses: actions/checkout@v3
+      #   with:
+      #     sparse-checkout: |
+      #       docker-compose_nginx.yml
+      #       nginx/nginx.conf
+      #     sparse-checkout-cone-mode: false
+      #     clean: true
+
+      # 1. 이전 배포 찌꺼기 제거 (깨끗한 환경을 위해)
+      - name: Clean workspace
+        run: rm -rf ./*
+
+      - name: 파일 다운로드
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-configs
+          path: . # 현재 작업 디렉토리에 파일들을 그대로 풉니다.
+
+      - name: 도커 로그인
+        uses: docker/login-action@v3
+        with:
+          username: ${{env.DOCKER_USERNAME}}
+          password: ${{env.DOCKER_PASSWORD}}
+
+      - name: 운영 서버 배포
+        run: |
+          # 위 체크아웃으로 인해 아래 pull이 필요없다.
+          #cd ~/kosa-devops_step2
+          #git pull
+
+          docker pull ${{env.DOCKER_USERNAME}}/devops_step2:v1.0
+
+          # 체크아웃으로 인해 참조하는 폴더가 ~ 가 아니라 ~/actions-runner/_work/kosa-devops_step2/kosa-devops_step2가 된다.
+          #docker compose -f ~/kosa-devops_step2/docker-compose_nginx.yml up -d
+          docker compose -f docker-compose_nginx.yml up -d
+
+          docker image prune -f
