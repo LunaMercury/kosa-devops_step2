@@ -59,6 +59,7 @@ jobs:
         with:
           sparse-checkout: |
             docker-compose_nginx.yml
+            nginx/nging.conf
           sparse-checkout-cone-mode: false
           clean: true
 
@@ -70,9 +71,14 @@ jobs:
 
       - name: 운영 서버 배포
         run: |
+          # 위 체크아웃으로 인해 아래 pull이 필요없다.
+          #cd ~/kosa-devops_step2
+          #git pull
 
           docker pull ${{env.DOCKER_USERNAME}}/devops_step2:v1.0
 
-          docker compose -f ~/kosa-devops_step2/docker-compose_nginx.yml up -d
+          # 체크아웃으로 인해 참조하는 폴더가 ~ 가 아니라 ~/actions-runner/_work/kosa-devops_step2/kosa-devops_step2가 된다.
+          #docker compose -f ~/kosa-devops_step2/docker-compose_nginx.yml up -d
+          docker compose -f docker-compose_nginx.yml up -d
 
           docker image prune -f
