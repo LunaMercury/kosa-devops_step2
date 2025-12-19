@@ -1,8 +1,8 @@
-name: Artifact Deployment (VM to VM)
+name: Artifact Deployment (VM to AWS)
 
-# on:
-#   push:
-#     branches: [main]
+on:
+  push:
+    branches: [main]
 
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -60,7 +60,7 @@ jobs:
 
   # 운영서버
   deploy:
-    name: Deploy to Production VM
+    name: Deploy to AWS EC2
     runs-on: [self-hosted]
     needs: build
     steps:
@@ -73,12 +73,12 @@ jobs:
           name: deploy-configs
           path: .
 
-      - name: 운영 서버로 파일 복사(SCP)
+      - name: AWS 운영 서버로 파일 복사(SCP)
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ env.PROD_KEY_MASTER_SERVER }}
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USERNAME }}
+          key: ${{ secrets.AWS_PRIVATE_KEY }}
           source: "docker-compose_nginx.yml,nginx/nginx.conf"
           target: "~/kosa-deploy"
           strip_components: 0
@@ -86,9 +86,9 @@ jobs:
       - name: 운영 서버에서 배포 실행 (SSH)
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ env.PROD_KEY_MASTER_SERVER }}
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USERNAME }}
+          key: ${{ secrets.AWS_PRIVATE_KEY }}
           script: |
             # 운영 서버에 폴더가 없을 수도 있으니 생성 명령 추가 (안전장치)
             mkdir -p ~/kosa-deploy
